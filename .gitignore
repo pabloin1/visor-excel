@@ -1,0 +1,16 @@
+.venv
+__pycache__/
+*.pyc
+staticfiles/
+.cache/
+.taste-skill/
+graphify-out/
+
+data/
+
+muestras/*
+!muestras/casos_prueba/
+!muestras/casos_prueba/**
+!muestras/generar_cuatro_versiones.py
+!muestras/historial_principal_4_versiones/
+!muestras/historial_principal_4_versiones/**

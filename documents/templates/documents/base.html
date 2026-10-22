@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Visor de Excel{% endblock %}</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{% static 'documents/favicon.svg' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'documents/vendor/open-props-easings.min.css' %}"
+    />
+    <link rel="stylesheet" href="{% static 'documents/app.generated.css' %}" />
+    <link rel="stylesheet" href="{% static 'documents/server.css' %}" />
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <header class="app-header">
+      <a
+        class="brand"
+        href="{% url 'documents:library' %}"
+        aria-label="Visor de Excel, ir a la biblioteca"
+      >
+        <span class="brand-mark" aria-hidden="true"
+          ><svg viewBox="0 0 24 24" focusable="false">
+            <path d="M5 3h9l5 5v13H5z"></path>
+            <path d="M14 3v6h5M8 13h8M8 17h8"></path></svg
+        ></span>
+        <span
+          ><strong class="brand-title">Visor de Excel</strong
+          ><span class="brand-subtitle">Archivos locales</span></span
+        >
+      </a>
+      <nav class="app-nav" aria-label="Navegación principal">
+        <a
+          class="nav-button {% if request.resolver_match.url_name == 'library' %}selected{% endif %}"
+          href="{% url 'documents:library' %}"
+          {% if request.resolver_match.url_name == 'library' %}aria-current="page"
+          {% endif %}
+          >Biblioteca</a
+        >
+        <a
+          class="{% if request.resolver_match.url_name == 'library' %}primary{% else %}nav-button{% endif %} upload-button {% if request.resolver_match.url_name == 'upload' %}selected{% endif %}"
+          href="{% url 'documents:upload' %}"
+          {% if request.resolver_match.url_name == 'upload' %}aria-current="page"
+          {% endif %}
+          >Cargar Excel</a
+        >
+      </nav>
+    </header>
+    <main id="contenido">
+      {% if messages %}
+      <div class="page-messages" role="status">
+        {% for message in messages %}
+        <p class="page-message">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %} {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

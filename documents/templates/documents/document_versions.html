@@ -1,0 +1,54 @@
+{% extends 'documents/base.html' %} {% block title %}Versiones de {{ document.name }} | Visor de Excel{% endblock %} {% block content %}
+<section
+  class="document-versions-page"
+  aria-labelledby="document-versions-title"
+>
+  <a class="back-link" href="{{ library_url }}">← Volver a la biblioteca</a>
+  <div class="library-heading">
+    <div>
+      <h1 id="document-versions-title">{{ document.name }}</h1>
+      <p>
+        {{ total }} {% if total == 1 %}versión guardada{% else %}versiones
+        guardadas{% endif %}
+      </p>
+    </div>
+    <a
+      class="primary"
+      href="{% url 'documents:upload' %}?document_id={{ document.id }}"
+      >Agregar versión</a
+    >
+  </div>
+  <div id="versions-list" class="document-versions-card">
+    <ol class="library-versions document-version-list">
+      {% for version in versions %}
+      <li>
+        <div>
+          <strong
+            >v{{ version.version_number }}{% if version.id == primary_id %} ·
+            Vigente{% endif %}</strong
+          ><span>{{ version.original_filename }}</span
+          ><span
+            >{{ version.uploaded_at|date:'Y-m-d' }} · {{ version.sheet_count }}
+            hoja{{ version.sheet_count|pluralize }} · {{ version.row_count }}
+            filas</span
+          >
+        </div>
+        <div class="version-actions">
+          <a class="secondary" href="{% url 'documents:version' version.id %}"
+            >Abrir</a
+          >{% if version.id == primary_id %}<a
+            class="del"
+            href="{% url 'documents:delete' version.id %}"
+            >Eliminar</a
+          >{% else %}<span class="version-preserved">Historial protegido</span
+          >{% endif %}
+        </div>
+      </li>
+      {% empty %}
+      <li>No hay versiones para este documento.</li>
+      {% endfor %}
+    </ol>
+    {% include 'documents/pager.html' %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'documents/base.html' %}
+{% block title %}{{ file.document_name }} · v{{ file.version_number }} | Visor de Excel{% endblock %}
+{% block content %}
+<section id="viewer" aria-labelledby="version-title">
+  <a class="back-link" href="{% url 'documents:library' %}">← Volver a la biblioteca</a>
+  <header class="bar"><div class="title-wrap"><div class="file-heading"><h1 id="version-title">{{ file.document_name }}</h1><p class="version-source-file">Archivo de esta versión: {{ file.filename }}</p></div>
+    {% if file.is_primary %}<span class="badge primary-tag">Versión vigente · v{{ file.version_number }}</span>{% else %}<span class="badge">Versión histórica · v{{ file.version_number }}</span>{% endif %}
+  </div><a class="secondary version-add-action" href="{% url 'documents:upload' %}?document_id={{ file.document_id }}">Agregar versión</a></header>
+  {% if file.sheets %}
+  <nav class="tabs" aria-label="Hojas del archivo">{% for tab in sheet_links %}<a class="tab-link {% if tab.name == selected_sheet %}selected{% endif %}" href="{{ tab.url }}" {% if tab.name == selected_sheet %}aria-current="page"{% endif %}>{{ tab.name }}</a>{% endfor %}</nav>
+  {% endif %}
+  <nav class="view-switch" aria-label="Vistas del archivo">{% for tab in view_links %}<a class="view-link {% if tab.name == view %}selected{% endif %}" href="{{ tab.url }}" {% if tab.name == view %}aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>
+  {% if view == 'summary' %}
+    <section class="dashboard" aria-label="Resumen de la hoja">
+      {% if workbook_report %}<section class="report-section" aria-labelledby="workbook-report-title">
+        <div class="section-intro"><div><h2 id="workbook-report-title">Resumen del libro Excel</h2></div><p>Las filas se suman por hoja; una misma entidad puede aparecer en más de una.</p></div>
+        <div class="metrics"><article class="metric-card"><span>Hojas</span><strong>{{ workbook_report.sheet_count }}</strong></article><article class="metric-card"><span>Filas entre hojas</span><strong>{{ workbook_report.total_rows }}</strong></article><article class="metric-card"><span>Hojas vacías</span><strong>{{ workbook_report.empty_sheets }}</strong></article><article class="metric-card"><span>Hojas con observaciones</span><strong>{{ workbook_report.sheets_with_observations }}</strong></article></div>
+        <div class="table-wrap report-table-wrap"><table><thead><tr><th scope="col">Hoja</th><th scope="col">Filas</th><th scope="col">Columnas</th><th scope="col">Filas con vacíos</th><th scope="col">Columnas mixtas</th><th scope="col">Observaciones</th></tr></thead><tbody>{% for item in workbook_report.sheets %}<tr><th scope="row">{{ item.name }}</th><td>{{ item.rows }}</td><td>{{ item.columns }}</td><td>{{ item.rows_with_missing }}</td><td>{{ item.mixed_columns }}</td><td>{% if item.empty %}Hoja vacía{% elif item.needs_review %}Revisar vacíos o tipos mixtos{% else %}Sin observaciones de estructura{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+      </section>{% endif %}
+      {% if not sheet %}<p class="chart-empty">Este archivo no tiene hojas para resumir.</p>{% else %}
+      <div class="section-intro report-sheet-heading"><div><h2>Hoja: {{ selected_sheet }}</h2></div><p>{{ summary.details.rows_with_missing }} filas con datos vacíos · {{ summary.details.mixed_columns }} columnas de tipo mixto</p></div>
+      <div class="metrics">{% for metric in summary_metrics %}<article class="metric-card"><span>{{ metric.0 }}</span><strong>{{ metric.1 }}</strong></article>{% endfor %}</div>
+      <section class="chart-card"><div class="chart-heading"><div><h2>{{ summary.chart.title }}</h2><p class="muted">{{ summary.chart.description }}</p></div></div>
+        <form class="chart-controls server-controls" method="get">
+          <input type="hidden" name="view" value="summary"><input type="hidden" name="sheet" value="{{ selected_sheet }}">
+          <label>Agrupar por<select name="category_col"><option value="" {% if category_col == '' %}selected{% endif %}>Sin agrupación</option>{% for option in category_options %}<option value="{{ option.0 }}" {% if category_col == option.0 %}selected{% endif %}>{{ option.1 }}</option>{% endfor %}</select></label>
+          <label>Medida<select name="measure_col"><option value="" {% if measure_col == '' %}selected{% endif %}>Recuento de registros</option>{% for option in measure_options %}<option value="{{ option.0 }}" {% if measure_col == option.0 %}selected{% endif %}>{{ option.1 }}</option>{% endfor %}</select></label>
+          <label>Operación<select name="stat_op"><option value="sum" {% if stat_op == 'sum' %}selected{% endif %}>Suma</option><option value="avg" {% if stat_op == 'avg' %}selected{% endif %}>Promedio</option><option value="min" {% if stat_op == 'min' %}selected{% endif %}>Mínimo</option><option value="max" {% if stat_op == 'max' %}selected{% endif %}>Máximo</option><option value="count" {% if stat_op == 'count' %}selected{% endif %}>Recuento</option></select></label>
+          {% if is_date_category %}<label>Granularidad fecha<select name="date_period"><option value="raw" {% if date_period == 'raw' %}selected{% endif %}>Día exacto</option><option value="month" {% if date_period == 'month' %}selected{% endif %}>Mes</option><option value="year" {% if date_period == 'year' %}selected{% endif %}>Año</option></select></label>{% endif %}
+          <label>Orden<select name="sort_chart"><option value="desc" {% if sort_chart == 'desc' %}selected{% endif %}>Mayor a menor</option><option value="asc" {% if sort_chart == 'asc' %}selected{% endif %}>Menor a mayor</option><option value="alpha" {% if sort_chart == 'alpha' %}selected{% endif %}>Alfabético o cronológico</option></select></label>
+          <button class="secondary" type="submit">Actualizar resumen</button>
+        </form>
+        {% if chart_items %}<div id="chart-results" class="chart" aria-label="Distribución de datos">
+          {% for item in chart_items %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><span class="bar-track"><span class="{% if item.negative %}negative{% endif %}" style="width:{{ item.percent }}%"></span></span><strong class="bar-value">{{ item.value }}</strong></div>{% endfor %}
+        </div>{% else %}<p class="chart-empty">No hay datos para mostrar con esta selección.</p>{% endif %}
+        {% if chart_items %}<p class="chart-audit-note">La longitud de cada barra indica la magnitud del valor.</p>{% endif %}
+        {% include 'documents/pager.html' with pager=chart_pager %}
+        {% if summary.chart.omitted_non_numeric or summary.chart.omitted_nulls or summary.chart.other_details %}<footer class="chart-footer">
+          {% if summary.chart.omitted_non_numeric %}<p class="chart-audit-note">Se omitieron {{ summary.chart.omitted_non_numeric }} valores no numéricos del cálculo.</p>{% endif %}
+          {% if summary.chart.omitted_nulls %}<p class="chart-audit-note">Se omitieron {{ summary.chart.omitted_nulls }} valores vacíos o nulos.</p>{% endif %}
+          {% if summary.chart.other_details %}<details id="other-details" class="others-disclosure" {% if other_open %}open{% endif %}><summary>Desglose de «Otros» · {{ other_count }} categorías</summary><ul class="others-list">{% for item in other_details %}<li><span>{{ item.0 }}</span><strong>{{ item.1 }}</strong></li>{% endfor %}</ul>{% include 'documents/pager.html' with pager=other_pager %}</details>{% endif %}
+        </footer>{% endif %}
+      </section>
+      <section class="report-section report-detail" aria-label="Perfil de columnas">
+        <div class="section-intro"><div><h2>Detalle de columnas</h2></div><p>Los cálculos numéricos usan solo valores válidos. Los identificadores no se suman.</p></div>
+        {% if summary.details.numeric_fields %}<h3>Campos numéricos</h3><div class="table-wrap report-table-wrap"><table><thead><tr><th scope="col">Columna</th><th scope="col">Válidos</th><th scope="col">Vacíos</th><th scope="col">No numéricos</th><th scope="col">Suma</th><th scope="col">Promedio</th><th scope="col">Mínimo</th><th scope="col">Máximo</th></tr></thead><tbody>{% for item in summary.details.numeric_fields %}<tr><th scope="row">{{ item.name }}{% if item.identifier %}<small>Identificador</small>{% endif %}</th><td>{{ item.valid }}</td><td>{{ item.missing }}</td><td>{{ item.non_numeric }}</td>{% if item.identifier or not item.valid %}<td colspan="4">No aplica</td>{% else %}<td>{{ item.sum|floatformat:2 }}</td><td>{{ item.average|floatformat:2 }}</td><td>{{ item.minimum|floatformat:2 }}</td><td>{{ item.maximum|floatformat:2 }}</td>{% endif %}</tr>{% endfor %}</tbody></table></div>{% endif %}
+        {% if summary.details.categorical_fields %}<h3>Campos de texto y categorías</h3><p class="muted">Los porcentajes usan todas las filas de la hoja, incluidos los registros sin valor en esa columna.</p><div class="table-wrap report-table-wrap"><table><thead><tr><th scope="col">Columna</th><th scope="col">Distintos</th><th scope="col">Vacíos</th><th scope="col">Categorías más frecuentes</th></tr></thead><tbody>{% for item in summary.details.categorical_fields %}<tr><th scope="row">{{ item.name }}{% if item.identifier %}<small>Identificador</small>{% endif %}</th><td>{{ item.distinct }}</td><td>{{ item.missing }}</td><td>{% if item.identifier %}No aplica a identificadores{% else %}{% for top in item.top_values %}{{ top.label }}: {{ top.count }} ({{ top.percent }}%){% if not forloop.last %} · {% endif %}{% empty %}Sin valores{% endfor %}{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+        {% if summary.details.date_fields %}<h3>Fechas</h3><div class="table-wrap report-table-wrap"><table><thead><tr><th scope="col">Columna</th><th scope="col">Con fecha</th><th scope="col">Vacíos</th><th scope="col">Primera</th><th scope="col">Última</th></tr></thead><tbody>{% for item in summary.details.date_fields %}<tr><th scope="row">{{ item.name }}</th><td>{{ item.present }}</td><td>{{ item.missing }}</td><td>{{ item.minimum|default:'—' }}</td><td>{{ item.maximum|default:'—' }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+      </section>
+      {% endif %}
+    </section>
+  {% elif view == 'data' %}
+    <section class="data-view" aria-label="Datos de la hoja"><div class="section-intro"><div><h2>Registros de la hoja</h2></div><p>Busque en todas las filas o filtre cada columna.</p></div>
+      {% if sheet %}<form class="server-data-form" method="get">
+        <input type="hidden" name="view" value="data"><input type="hidden" name="sheet" value="{{ selected_sheet }}">
+        <div class="tools"><label class="data-search">Buscar registros<input name="q" type="search" maxlength="120" value="{{ q }}" placeholder="Escriba un dato para buscar"></label>
+          <label>Ordenar por<select name="sort_col"><option value="" {% if sort_col == '' %}selected{% endif %}>Orden original</option>{% for option in form.sort_col.field.choices %}{% if option.0 %}<option value="{{ option.0 }}" {% if sort_col == option.0 %}selected{% endif %}>{{ option.1 }}</option>{% endif %}{% endfor %}</select></label>
+          <label>Dirección<select name="sort_dir"><option value="asc" {% if sort_dir == 'asc' %}selected{% endif %}>Ascendente</option><option value="desc" {% if sort_dir == 'desc' %}selected{% endif %}>Descendente</option></select></label>
+        </div>
+        {% if filter_fields %}<details class="column-filter-box"><summary>Filtrar columnas</summary><div class="column-filter-fields">{% for filter in filter_fields %}<label>{{ filter.label }}<input name="filter_{{ filter.index }}" type="search" maxlength="120" value="{{ filter.value }}" placeholder="Filtrar"></label>{% endfor %}</div></details>{% endif %}
+        <div class="flow-actions"><button class="secondary" type="submit">Aplicar filtros</button><a class="text-btn" href="{% url 'documents:version' file.id %}?view=data&amp;sheet={{ selected_sheet|urlencode }}">Limpiar filtros</a></div>
+      </form>
+      <div class="table-wrap"><table id="grid"><thead><tr><th class="rn">#</th>{% for column in rows.columns %}<th scope="col"{% if forloop.counter0 in sheet.numeric_columns %} class="numeric-cell"{% endif %}>{{ column }}</th>{% endfor %}</tr></thead><tbody>
+        {% for row in rows.rows %}<tr><th class="rn" scope="row">{{ row.n }}</th>{% for value in row.r %}<td{% if forloop.counter0 in sheet.numeric_columns %} class="numeric-cell"{% endif %}>{{ value|default_if_none:'' }}</td>{% endfor %}</tr>{% empty %}<tr><td class="none" colspan="{{ rows.columns|length|add:1 }}">{% if rows.total_rows %}Ninguna fila coincide con los filtros aplicados.{% else %}Esta hoja no contiene registros.{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div>
+      <footer class="foot"><span>{{ rows.filtered_rows }} de {{ rows.total_rows }} filas</span>{% include 'documents/pager.html' %}</footer>
+      {% else %}<p class="chart-empty">Este archivo no contiene hojas.</p>{% endif %}
+    </section>
+  {% else %}
+    <section class="changes-view" aria-label="Historial de cambios"><div class="changes-history-heading"><h2>Historial de cambios</h2><p>Seleccione un tramo para consultar las diferencias entre versiones.</p></div>
+      {% if history %}
+      <p class="history-count">{{ history_total }} comparaciones en el historial</p>
+      <nav id="history-steps" class="changes-history-list" aria-label="Comparaciones entre versiones">{% for item in history %}<a class="changes-history-item {% if selected_change == item.id|stringformat:'s' %}selected{% endif %}" href="{{ item.url }}" {% if selected_change == item.id|stringformat:'s' %}aria-current="page"{% endif %}><strong>v{{ item.previous_version }} → v{{ item.version_number }}</strong><span>{{ item.totals.added }} agregados · {{ item.totals.updated }} actualizados · {{ item.totals.removed }} eliminados</span></a>{% endfor %}</nav>
+      {% include 'documents/pager.html' with pager=history_pager %}
+      {% if comparison %}<div class="changes-heading"><div><h2>Cambios de v{{ comparison.previous_version }} a v{{ comparison.version_number }}</h2><p class="muted">Comparación respecto a la versión anterior.</p></div></div>
+        {% if comparison.schema_changes %}<section class="schema-history" aria-label="Cambios de estructura"><h3>Cambios de hojas y columnas</h3><ul>{% for change in comparison.schema_changes %}<li>{{ change.description }}</li>{% endfor %}</ul></section>{% endif %}
+        {% if change_sheet_options %}<form class="changes-controls server-controls" method="get">
+          <input type="hidden" name="view" value="changes"><input type="hidden" name="sheet" value="{{ selected_sheet }}"><input type="hidden" name="change" value="{{ selected_change }}">
+          <label>Hoja<select name="change_sheet">{% for name in change_sheet_options %}<option value="{{ name }}" {% if change_sheet == name %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
+          <label>Tipo de cambio<select name="kind"><option value="added" {% if kind == 'added' %}selected{% endif %}>Agregados</option><option value="updated" {% if kind == 'updated' %}selected{% endif %}>Actualizados</option><option value="removed" {% if kind == 'removed' %}selected{% endif %}>Eliminados</option></select></label>
+          <button class="secondary" type="submit">Consultar cambios</button>
+        </form>
+        {% if change_sheet_summary %}<div class="metrics change-metrics"><article class="metric-card"><span>Agregados</span><strong>{{ change_sheet_summary.added }}</strong></article><article class="metric-card"><span>Actualizados</span><strong>{{ change_sheet_summary.updated }}</strong></article><article class="metric-card"><span>Eliminados</span><strong>{{ change_sheet_summary.removed }}</strong></article></div>
+          {% if change_sheet_summary.key_columns %}<p class="muted changes-note">Clave: {{ change_sheet_summary.key_columns|join:' + ' }}</p>{% else %}<p class="muted changes-note">Sin columnas clave compartidas; no se pueden identificar actualizaciones.</p>{% endif %}
+        {% endif %}
+        <div id="change-results" class="change-records">
+          {% if changes.details_available == False %}<p class="chart-empty">El resumen se conserva, pero la versión anterior fue eliminada y ya no se pueden consultar los detalles.</p>
+          {% else %}{% for record in change_records %}<article class="change-record"><header><strong>{% for pair in record.keys %}{{ pair.0 }}: {{ pair.1|default_if_none:'(sin dato)' }}{% if not forloop.last %} · {% endif %}{% empty %}Registro sin clave{% endfor %}</strong><span class="change-kind {{ kind }}">{% if kind == 'added' %}agregado{% elif kind == 'removed' %}eliminado{% else %}actualizado{% endif %}</span></header>
+            <ul>{% if record.changes %}{% for change in record.changes %}<li><strong>{{ change.column }}</strong><span>{{ change.old|default_if_none:'(vacío)' }}</span><span aria-hidden="true">→</span><span>{{ change.new|default_if_none:'(vacío)' }}</span></li>{% endfor %}{% else %}{% for pair in record.values %}<li><strong>{{ pair.0 }}</strong><span>{{ pair.1|default_if_none:'(vacío)' }}</span></li>{% endfor %}{% endif %}</ul>
+          </article>{% empty %}<p class="chart-empty">No hay registros de este tipo en la hoja seleccionada.</p>{% endfor %}{% endif %}
+        </div>
+        <footer class="foot"><span>{{ changes.total }} registros</span>{% include 'documents/pager.html' with pager=change_pager %}</footer>
+        {% else %}<p class="chart-empty">Estas versiones no tienen hojas para comparar.</p>{% endif %}
+      {% endif %}
+      {% else %}<p class="chart-empty">Esta versión es la primera del historial; todavía no hay comparaciones.</p>{% endif %}
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

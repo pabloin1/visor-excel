@@ -1,0 +1,83 @@
+/* Ritmo y respuesta para el trabajo diario con documentos. */
+.library-item { position: relative; }
+.library-item::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  transform: scaleY(0);
+  transform-origin: center;
+  background: var(--accent);
+  content: "";
+  pointer-events: none;
+}
+.library-item:hover::before, .library-item:focus-within::before { transform: scaleY(1); }
+.library-file-icon { transition: background-color .2s var(--ease-3), border-color .2s var(--ease-3); }
+.library-item:hover .library-file-icon, .library-item:focus-within .library-file-icon {
+  border-color: #8fbfb4;
+  background: #dceee8;
+}
+.library-open::after {
+  display: inline-block;
+  margin-left: 6px;
+  content: "↗";
+}
+.library-open:hover::after, .library-open:focus-visible::after { transform: translate(2px, -2px); }
+.library-item summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  list-style: none;
+}
+.library-item summary::-webkit-details-marker { display: none; }
+.library-item summary::before {
+  display: inline-block;
+  content: "›";
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1;
+}
+.library-item details[open] summary::before { transform: rotate(90deg); }
+.library-item details[open] summary { color: var(--sidebar-deep); }
+.library-tools input:not(:placeholder-shown), .filters input:not(:placeholder-shown),
+.data-search input:not(:placeholder-shown) {
+  border-color: #58a293;
+  background: #f7fbf9;
+}
+.tools #clear:disabled {
+  border-color: var(--line);
+  background: var(--head);
+  color: #647477;
+  cursor: default;
+}
+.bar-row { border-radius: 3px; }
+.bar-row:hover { background: #f5faf8; }
+.bar-row:hover .bar-track { box-shadow: 0 0 0 2px #cde5dd; }
+.metric-card:hover { border-top-color: var(--accent-track); }
+.metric-card:first-child:hover { border-top-color: var(--accent); }
+tbody tr:hover td:first-of-type { box-shadow: inset 3px 0 var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .library-item, .library-item::before, .library-item summary::before,
+  .library-open::after, .bar-row, .bar-track, .metric-card {
+    transition: background-color .2s var(--ease-3), border-color .2s var(--ease-3),
+      transform .2s var(--ease-out-3), box-shadow .2s var(--ease-3);
+  }
+  #library:not([hidden]), #viewer:not([hidden]) {
+    animation: workspace-enter .3s var(--ease-out-3) both;
+  }
+  #summary:not([hidden]), #data-view:not([hidden]), #changes-view:not([hidden]) {
+    animation: workspace-enter .24s var(--ease-out-3) both;
+  }
+  .library-item { animation: library-enter .3s var(--ease-out-3) both; }
+  .library-item:nth-child(2) { animation-delay: 25ms; }
+  .library-item:nth-child(3) { animation-delay: 50ms; }
+  .library-item:nth-child(4) { animation-delay: 75ms; }
+  .library-item:nth-child(5) { animation-delay: 100ms; }
+  .library-item:nth-child(n+6) { animation-delay: 125ms; }
+  .library-item details[open] .library-versions { animation: history-enter .2s var(--ease-out-3) both; }
+  .bar-track > span { transform-origin: left center; animation: bar-grow .45s var(--ease-out-4) both; }
+  @keyframes workspace-enter { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes library-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes history-enter { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}

@@ -1,0 +1,215 @@
+{% extends 'documents/base.html' %} {% block title %}Cargar archivo | Visor de
+Excel{% endblock %} {% block content %}
+<section class="flow-page" aria-labelledby="upload-title">
+  <a class="back-link" href="{% url 'documents:library' %}"
+    >← Volver a la biblioteca</a
+  >
+  <div class="flow-card">
+    <h1 id="upload-title">
+      {% if stage == 'decision' %}Documento existente{% elif stage == 'destination' %}Elegir destino del archivo{% elif stage == 'keys' %}Identificar registros{% elif target_document %}Agregar versión a {{ target_document.name }}{% else %}Cargar archivo{% endif %}
+    </h1>
+    {% if error %}
+    <p class="form-error" role="alert">{{ error }}</p>
+    {% endif %} {% if stage == 'file' %} {% if target_document %}
+    <p>
+      El archivo seleccionado se añadirá como nueva versión de
+      <strong>{{ target_document.name }}</strong>, aunque tenga otro nombre o
+      cambien sus columnas. Después podrá elegir las claves para comparar los
+      registros.
+    </p>
+    {% else %}
+    <p>
+      Seleccione un archivo Excel. Si su nombre no coincide con uno existente,
+      podrá elegir a qué documento añadirlo o guardarlo de forma independiente.
+    </p>
+    {% endif %}
+    <form
+      method="post"
+      enctype="multipart/form-data"
+      action="{% url 'documents:upload' %}"
+    >
+      {% csrf_token %}<input type="hidden" name="action" value="upload" />
+      <input type="hidden" name="document_id" value="{% if target_document %}{{ target_document.id }}{% endif %}" />
+      <label class="flow-field" for="id_file"
+        >{{ form.file.label }}<input
+          id="id_file"
+          name="file"
+          type="file"
+          accept=".xlsx,.xls"
+          required
+      /></label>
+      {% for field in form %}{% for message in field.errors %}
+      <p class="form-error" role="alert">{{ message }}</p>
+      {% endfor %}{% endfor %}
+      <p class="muted">Formatos: .xlsx y .xls · Máximo 50 MB</p>
+      <button class="primary" type="submit">
+        {% if target_document %}Continuar con nueva versión{% else %}Analizar
+        archivo{% endif %}
+      </button>
+    </form>
+    {% elif stage == 'destination' %}
+    <p>
+      El archivo <strong>{{ filename }}</strong> no coincide con el nombre de un
+      documento de la biblioteca. Elija la tarjeta a la que pertenece, aunque
+      tenga columnas diferentes, o guárdelo como documento independiente.
+    </p>
+    <form
+      class="destination-search"
+      method="get"
+      action="{% url 'documents:upload' %}"
+    >
+      <input type="hidden" name="stage" value="destination" /><label
+        for="destination-query"
+        >Buscar documento<input
+          id="destination-query"
+          name="q"
+          type="search"
+          maxlength="120"
+          value="{{ destination_q }}"
+          placeholder="Nombre en la biblioteca" /></label
+      ><button class="secondary" type="submit">Buscar</button>
+    </form>
+    <div id="destination-list" class="destination-list">
+      {% for item in destination_items %}
+      <article class="destination-item">
+        <div>
+          <strong>{{ item.name }}</strong
+          ><span
+            >v{{ item.version_number }} · {{ item.version_count }} versión{{ item.version_count|pluralize:"es" }} · Archivo vigente: {{ item.primary_filename }}</span
+          >
+        </div>
+        <form method="post" action="{% url 'documents:upload' %}">
+          {% csrf_token %}<input
+            type="hidden"
+            name="document_id"
+            value="{{ item.id }}"
+          /><button
+            class="secondary"
+            name="action"
+            value="select_document"
+            type="submit"
+          >
+            Añadir a este documento
+          </button>
+        </form>
+      </article>
+      {% empty %}
+      <p class="muted">No hay documentos que coincidan con la búsqueda.</p>
+      {% endfor %}
+    </div>
+    {% include 'documents/pager.html' with pager=destination_pager %}
+    <form
+      method="post"
+      action="{% url 'documents:upload' %}"
+      class="independent-action"
+    >
+      {% csrf_token %}
+      <p>
+        Si el archivo no pertenece a ninguna tarjeta, cree un documento nuevo.
+      </p>
+      <button class="primary" name="action" value="new_document" type="submit">
+        Guardar como documento independiente
+      </button>
+    </form>
+    {% elif stage == 'decision' %}
+    <p>
+      «{{ result.document.name }}» ya existe. El archivo pendiente es
+      <strong>{{ filename }}</strong>. Elija cómo guardarlo.
+    </p>
+    <section class="schema-comparison">
+      <h2>
+        {% if result.schema_comparison.has_changes %}Diferencias de estructura{% else %}Las hojas y columnas coinciden{% endif %}
+      </h2>
+      {% if result.schema_comparison.changes %}
+      <ul>
+        {% for change in result.schema_comparison.changes %}
+        <li>{{ change.description }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>Sin cambios estructurales detectados.</p>
+      {% endif %}
+    </section>
+    <form
+      method="post"
+      action="{% url 'documents:upload' %}"
+      class="flow-actions"
+    >
+      {% csrf_token %}
+      <button class="primary" name="action" value="new_version" type="submit">
+        Guardar como nueva versión
+      </button>
+      <button
+        class="secondary"
+        name="action"
+        value="new_document"
+        type="submit"
+      >
+        Guardar como documento nuevo
+      </button>
+      <a class="text-btn" href="{% url 'documents:upload' %}?stage=destination"
+        >Elegir otro documento</a
+      >
+    </form>
+    {% elif stage == 'keys' %}
+    <p>
+      Seleccione una o más columnas que identifiquen cada registro en ambas
+      versiones de «{{ result.document.name }}».
+    </p>
+    {% if result.schema_comparison.has_changes %}
+    <section class="schema-comparison">
+      <h2>Cambios de hojas y columnas</h2>
+      <ul>
+        {% for change in result.schema_comparison.changes %}
+        <li>{{ change.description }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    <form method="post" action="{% url 'documents:upload' %}">
+      {% csrf_token %} {% for sheet in result.sheets %}
+      <fieldset class="key-sheet">
+        <legend>{{ sheet.name }}</legend>
+        {% if sheet.available_keys %}
+        <p>Columnas compartidas:</p>
+        <div class="key-columns">
+          {% for column in sheet.available_keys %}<label
+            ><input
+              type="checkbox"
+              name="keys_{{ forloop.parentloop.counter0 }}"
+              value="{{ column }}"
+            />
+            {{ column }}</label
+          >{% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">
+          Sin columnas compartidas. Las filas se contarán como agregadas y
+          eliminadas.
+        </p>
+        {% endif %}
+      </fieldset>
+      {% endfor %}
+      <button class="primary" name="action" value="save_keys" type="submit">
+        Comparar y guardar versión
+      </button>
+    </form>
+    {% endif %} {% if stage != 'file' %}
+    <form
+      method="post"
+      action="{% url 'documents:upload' %}"
+      class="flow-cancel"
+    >
+      {% csrf_token %}<button
+        class="text-btn"
+        name="action"
+        value="cancel"
+        type="submit"
+      >
+        Cancelar carga
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

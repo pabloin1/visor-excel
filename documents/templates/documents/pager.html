@@ -1,0 +1,10 @@
+{% if pager.pages > 1 %}
+<nav class="library-pager" aria-label="{{ pager.label|default:'Paginación' }}">
+  {% if pager.previous %}<a class="secondary" href="{{ pager.previous }}"
+    >Anterior</a
+  >{% else %}<span></span>{% endif %}
+  <span>Página {{ pager.number }} de {{ pager.pages }}</span>
+  {% if pager.next %}<a class="secondary" href="{{ pager.next }}">Siguiente</a
+  >{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}

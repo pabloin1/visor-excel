@@ -1,0 +1,249 @@
+{% extends 'documents/base.html' %} {% load static %} {% block title %}Biblioteca | Visor de Excel{% endblock %} {% block content %}
+<section id="library" aria-labelledby="library-title">
+  <div class="library-heading">
+    <div>
+      <h1 id="library-title">Biblioteca de documentos</h1>
+      <p>Documentos y versiones guardados en este equipo.</p>
+    </div>
+    <span class="workspace-status"
+      ><span class="local-dot" aria-hidden="true"></span>Uso local</span
+    >
+  </div>
+  {% if not total and not q %}
+  <div class="empty">
+    <div class="welcome-layout">
+      <div class="welcome-copy">
+        <h2 class="big">Consulte y compare sus hojas de cálculo</h2>
+        <p class="muted">
+          Cargue un archivo Excel para explorar registros, revisar indicadores y
+          seguir los cambios entre versiones.
+        </p>
+        <a
+          class="primary empty-upload-button"
+          href="{% url 'documents:upload' %}"
+          >Seleccionar archivo</a
+        >
+        <p class="formats-pill">
+          Formatos admitidos: Excel (.xlsx, .xls) · Máximo 50 MB
+        </p>
+        <p class="drop-hint">
+          Los archivos y el historial se conservan en este equipo.
+        </p>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="library-content">
+    <form
+      class="library-tools"
+      method="get"
+      action="{% url 'documents:library' %}"
+    >
+      <label class="library-search"
+        >Buscar documento<input
+          name="q"
+          type="search"
+          maxlength="120"
+          value="{{ q }}"
+          placeholder="Nombre del archivo"
+      /></label>
+      <label class="library-sort"
+        >Ordenar por<select name="sort">
+          <option value="recent" {% if sort == "recent" %}selected{% endif %}>
+            Actualización más reciente
+          </option>
+          <option value="name" {% if sort == "name" %}selected{% endif %}>
+            Nombre
+          </option>
+          <option value="rows" {% if sort == "rows" %}selected{% endif %}>
+            Más registros
+          </option>
+        </select></label
+      >
+      <button class="secondary" type="submit">Aplicar</button>
+    </form>
+    <p class="library-count">
+      {{ total }} documento{{ total|pluralize }} en la biblioteca
+    </p>
+    {% if items %}
+    <div id="document-cards" class="library-card-grid">
+      {% for item in items %}
+      <article class="library-item library-card" data-version-drop>
+        <div class="library-card-top">
+          <span class="library-file-icon" aria-hidden="true"
+            >{{ item.file_type }}</span
+          ><span class="library-card-version"
+            >Versión vigente · v{{ item.version_number }}</span
+          >
+        </div>
+        <h2 title="{{ item.name }}">{{ item.name }}</h2>
+        <p class="library-current-file">
+          <span>Archivo vigente</span
+          ><strong title="{{ item.primary_filename }}"
+            >{{ item.primary_filename }}</strong
+          >
+        </p>
+        <div class="library-card-facts">
+          <span
+            >{{ item.sheet_count }} hoja{{ item.sheet_count|pluralize }}</span
+          ><span>{{ item.row_count }} filas</span
+          ><span
+            >{{ item.version_count }} {% if item.version_count == 1 %}versión{% else %}versiones{% endif %}</span
+          >
+        </div>
+        <p class="library-card-date">
+          Actualizado
+          <time datetime="{{ item.uploaded_at }}"
+            >{{ item.uploaded_at|slice:':10' }}</time
+          >
+        </p>
+        <div class="library-card-actions">
+          <a
+            class="primary"
+            href="{% url 'documents:version' item.primary_id %}"
+            aria-label="Abrir versión vigente de {{ item.name }}"
+            >Abrir vigente</a
+          ><a
+            class="secondary"
+            href="{% url 'documents:upload' %}?document_id={{ item.id }}"
+            aria-label="Agregar nueva versión a {{ item.name }}"
+            >Agregar versión</a
+          >
+        </div>
+        <a
+          class="library-history-trigger"
+          href="{{ item.versions_url }}"
+          data-history-trigger
+          data-history-template="library-history-{{ item.id }}"
+          aria-haspopup="dialog"
+          aria-controls="library-history-dialog"
+          aria-label="Ver historial de {{ item.name }}"
+        >
+          <span
+            >Ver historial
+            <span class="summary-count">{{ item.version_count }}</span></span
+          >
+        </a>
+        <form
+          class="library-card-drop-form"
+          method="post"
+          enctype="multipart/form-data"
+          action="{% url 'documents:upload' %}"
+        >
+          {% csrf_token %}<input
+            type="hidden"
+            name="action"
+            value="upload"
+          /><input
+            type="hidden"
+            name="document_id"
+            value="{{ item.id }}"
+          /><input
+            type="file"
+            name="file"
+            accept=".xlsx,.xls"
+            tabindex="-1"
+            aria-hidden="true"
+          />
+        </form>
+        <div class="library-card-drop-indicator" aria-hidden="true">
+          <span class="library-card-drop-mark">+</span
+          ><strong>Nueva versión de {{ item.name }}</strong
+          ><span>Suelte el archivo Excel aquí</span>
+        </div>
+        <p
+          class="library-card-drop-error"
+          role="alert"
+          aria-live="assertive"
+        ></p>
+      </article>
+      <template id="library-history-{{ item.id }}">
+        <div class="library-history-intro">
+          <h2 id="library-history-title">{{ item.name }}</h2>
+          <p>
+            {{ item.version_count }} {% if item.version_count == 1 %}versión{% else %}versiones{% endif %} · Vigente v{{ item.version_number }}{% if item.has_more_versions %} · Se muestran las {{ item.versions|length }} más recientes{% endif %}
+          </p>
+        </div>
+        <ul class="library-versions library-history-list">
+          {% for version in item.versions %}
+          <li>
+            <div>
+              <strong
+                >v{{ version.version_number }}{% if version.id == item.primary_id %} · Vigente{% endif %}</strong
+              ><span>{{ version.original_filename }}</span
+              ><span
+                >{{ version.uploaded_at|slice:':10' }} · {{ version.sheet_count }} hoja{{ version.sheet_count|pluralize }} · {{ version.row_count }} filas</span
+              >
+            </div>
+            <div class="version-actions">
+              <a
+                class="secondary"
+                href="{% url 'documents:version' version.id %}"
+                >Abrir</a
+              >
+              {% if version.id == item.primary_id %}<a
+                class="del"
+                href="{% url 'documents:delete' version.id %}"
+                >Eliminar</a
+              >{% else %}<span class="version-preserved"
+                >Historial protegido</span
+              >{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        <div class="library-history-links">
+          <a
+            class="secondary library-full-history"
+            href="{{ item.versions_url }}"
+            >Ver historial completo de {{ item.name }}</a
+          >
+          <a
+            class="primary"
+            href="{% url 'documents:version' item.primary_id %}"
+            >Abrir vigente</a
+          >
+          <a
+            class="secondary"
+            href="{% url 'documents:upload' %}?document_id={{ item.id }}"
+            >Agregar versión</a
+          >
+        </div>
+      </template>
+      {% endfor %}
+    </div>
+    <dialog
+      id="library-history-dialog"
+      class="library-history-dialog"
+      aria-labelledby="library-history-title"
+    >
+      <div class="library-history-shell">
+        <div class="library-history-bar">
+          <span>Versiones del documento</span
+          ><button
+            type="button"
+            class="library-history-close"
+            aria-label="Cerrar historial"
+          >
+            ×
+          </button>
+        </div>
+        <div class="library-history-content" data-history-content></div>
+      </div>
+    </dialog>
+    {% else %}
+    <div class="library-feedback">
+      <strong>No encontramos documentos</strong>
+      <p>Revise el nombre o borre la búsqueda para ver toda la biblioteca.</p>
+      <a class="secondary" href="{% url 'documents:library' %}"
+        >Limpiar búsqueda</a
+      >
+    </div>
+    {% endif %} {% include 'documents/pager.html' %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %} {% block scripts %}
+<script defer src="{% static 'documents/library-drop.js' %}"></script>
+<script defer src="{% static 'documents/library-history.js' %}"></script>
+{% endblock %}

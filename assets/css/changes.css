@@ -1,0 +1,239 @@
+.primary-tag {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #dff2eb;
+  color: #17695d;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+.changes-view {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.changes-history-heading h3 { margin: 0; font-size: 16px; }
+.changes-history-heading p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.changes-history-list {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  max-height: 150px;
+  overflow: auto;
+  padding: 2px 2px 8px;
+}
+.changes-history-item {
+  display: grid;
+  flex: 0 0 min(230px, 80vw);
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.changes-history-item:hover { border-color: var(--accent); }
+.changes-history-item.selected { border-color: var(--accent); background: var(--accent-soft); }
+.changes-history-item strong { font-size: 13px; }
+.changes-history-item span { color: var(--muted); font-size: 11px; line-height: 1.35; }
+.changes-history-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.changes-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.changes-heading h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.changes-heading p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.changes-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.changes-controls label {
+  display: grid;
+  min-width: 150px;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.changes-controls select {
+  min-height: 40px;
+  max-width: 240px;
+  padding: 7px 30px 7px 10px;
+  border: 1px solid #dce4e6;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.change-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.changes-note {
+  margin: 0;
+  font-size: 12px;
+}
+
+.change-records {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  align-content: start;
+  gap: 9px;
+  overflow: auto;
+}
+
+.change-record {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.change-record > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.change-kind {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: #e8f0ee;
+  color: #245b52;
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.change-kind.updated {
+  background: #fff1d6;
+  color: #805400;
+}
+
+.change-kind.removed {
+  background: #fff0ee;
+  color: #a93226;
+}
+
+.change-record ul {
+  display: grid;
+  gap: 5px 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change-record li {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 7px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.change-record li strong {
+  flex: none;
+  color: var(--ink);
+}
+
+.change-record li span {
+  min-width: 0;
+}
+
+.comparison-key-choices {
+  display: grid;
+  max-height: min(48vh, 420px);
+  gap: 10px;
+  overflow: auto;
+}
+
+.key-sheet {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--head);
+}
+
+.key-sheet legend {
+  padding: 0 5px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.key-sheet p {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.key-columns {
+  display: flex;
+  gap: 7px 14px;
+  flex-wrap: wrap;
+}
+
+.key-columns label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.key-columns input {
+  accent-color: var(--accent);
+}
+
+@media (max-width: 520px) {
+  .change-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .changes-controls {
+    width: 100%;
+  }
+
+  .changes-controls label {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .changes-controls select {
+    width: 100%;
+    max-width: none;
+  }
+
+}

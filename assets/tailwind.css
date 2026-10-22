@@ -1,0 +1,24 @@
+/* Keep the existing element defaults while migrating components to Tailwind. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "./css/foundation.css" layer(components);
+@import "./css/data-views.css" layer(components);
+@import "./css/feedback-responsive.css" layer(components);
+@import "./css/base-theme.css" layer(components);
+@import "./css/changes.css" layer(components);
+@import "./css/institutional-theme.css" layer(components);
+@import "./css/library.css" layer(components);
+@import "./css/motion.css" layer(components);
+@import "./css/responsive-scale.css" layer(components);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@source "../documents/templates/documents";
+
+@theme {
+  --color-teal: #12665e;
+  --color-teal-deep: #0c4b45;
+  --color-mint: #8ab9ac;
+  --color-paper: #ffffff;
+  --color-ink: #172c30;
+  --color-stone: #5c6c70;
+}

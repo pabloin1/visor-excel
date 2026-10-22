@@ -1,0 +1,13 @@
+{% extends 'documents/base.html' %}
+{% block title %}Eliminar versión | Visor de Excel{% endblock %}
+{% block content %}
+<section class="flow-page" aria-labelledby="delete-title">
+  <a class="back-link" href="{% url 'documents:library' %}">← Volver a la biblioteca</a>
+  <div class="flow-card"><h1 id="delete-title">Eliminar versión</h1>
+    <p>Se eliminará la versión <strong>v{{ version.version_number }}</strong> de «{{ version.document.name }}».</p>
+    {% if protected %}<p class="delete-warning">Esta versión forma parte del historial de cambios y no se puede eliminar mientras existan versiones posteriores.</p><a class="secondary" href="{% url 'documents:library' %}">Volver a la biblioteca</a>
+    {% else %}<p class="delete-warning">También se eliminará el archivo original. Esta acción no se puede deshacer.</p>
+    <form method="post" class="flow-actions">{% csrf_token %}<button class="danger" type="submit">Eliminar versión</button><a class="secondary" href="{% url 'documents:library' %}">Conservar versión</a></form>{% endif %}
+  </div>
+</section>
+{% endblock %}
