@@ -34,3 +34,24 @@ class Version(models.Model):
 
     def __str__(self):
         return f"{self.document.name} v{self.version_number}"
+
+
+class VersionContent(models.Model):
+    """Durable copy of an original workbook for hosts with ephemeral disks."""
+
+    version = models.OneToOneField(Version, on_delete=models.CASCADE, primary_key=True, related_name="content_record")
+    content = models.BinaryField()
+
+    class Meta:
+        db_table = "version_contents"
+
+
+class PendingContent(models.Model):
+    """A staged upload that must survive a web service restart."""
+
+    token = models.CharField(max_length=32, primary_key=True)
+    content = models.BinaryField()
+    created_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        db_table = "pending_contents"

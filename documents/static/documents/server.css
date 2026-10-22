@@ -5,6 +5,9 @@ a.primary, a.secondary, a.nav-button, a.back-link, a.text-btn { text-decoration:
 .brand > span:last-child { display: grid; gap: 1px; }
 .brand-title { color: #fff; font-size: 17px; line-height: 1.2; }
 .brand-subtitle { color: #c1d7d1; font-size: 12px; }
+.logout-form { margin: 0; }
+.logout-form button { cursor: pointer; }
+.login-page { max-width: 540px; padding-top: clamp(32px, 8vh, 96px); }
 .library-heading h1 { margin: 5px 0 4px; color: #172c30; font-size: clamp(28px, 2.7vw, 38px); font-weight: 650; line-height: 1.12; letter-spacing: -.035em; text-wrap: balance; }
 .library-name h2 { margin: 0; overflow-wrap: anywhere; font-size: 15px; font-weight: 700; line-height: 1.35; }
 .library-versions a.secondary { min-height: 36px; padding: 6px 12px; }

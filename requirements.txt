@@ -2,3 +2,7 @@ Django>=5.2,<6
 pandas
 openpyxl
 xlrd
+dj-database-url>=2.3,<3
+gunicorn>=23,<24
+psycopg2-binary>=2.9,<3
+whitenoise>=6.9,<7

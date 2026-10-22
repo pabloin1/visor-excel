@@ -14,7 +14,7 @@ from django.db.models import Count, Max, OuterRef, Q, Subquery
 from django.db.models.functions import Lower
 from django.utils import timezone
 
-from documents.models import Document, Version
+from documents.models import Document, Version, VersionContent
 
 from documents.services.comparison import (
     compare_cached_versions,
@@ -98,6 +98,26 @@ def _publish(source: Path, destination: Path, sha256: str | None = None) -> bool
         return False
 
 
+def original_path(version: dict) -> Path:
+    path = uploads_dir() / version["stored_path"]
+    if path.is_file():
+        return path
+    if settings.VISOR_ORIGINAL_STORAGE != "database":
+        raise HTTPException(404, "Archivo original no encontrado")
+    content = VersionContent.objects.filter(version_id=version["id"]).values_list("content", flat=True).first()
+    if content is None:
+        raise HTTPException(404, "El original de esta versión no está guardado en la base de datos")
+    data = bytes(content)
+    if hashlib.sha256(data).hexdigest() != version["sha256"]:
+        raise HTTPException(500, "El original guardado no coincide con su hash")
+    uploads_dir().mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".restore-", dir=uploads_dir()) as restoring:
+        staged = Path(restoring) / path.name
+        staged.write_bytes(data)
+        _publish(staged, path, version["sha256"])
+    return path
+
+
 def schema_profile_for_version(version) -> dict:
     """Returns a stored profile or reconstructs it for a pre-profile history entry."""
     try:
@@ -107,7 +127,7 @@ def schema_profile_for_version(version) -> dict:
     if isinstance(profile, dict) and isinstance(profile.get("sheets"), list):
         return profile
 
-    path = uploads_dir() / version["stored_path"]
+    path = original_path(version)
     options = json.loads(version["import_options"]) if version["import_options"] else {}
     sheets, _ = read_sheets(path, options)
     profile = build_schema_profile(sheets)
@@ -131,6 +151,11 @@ def schema_changes_for_version(current: dict, previous: dict | None, summary: di
 
 
 def build_cache_for_version(sha256: str, path: Path, options: dict) -> Path:
+    if not path.is_file():
+        version = Version.objects.filter(sha256=sha256).first()
+        if version is None:
+            raise HTTPException(404, "Versión no encontrada")
+        path = original_path(version_row(version))
     return build_cache(sha256, path, options, cache_dir())
 
 
@@ -287,6 +312,8 @@ def upload(
                             comparison_keys=comparison_key_map,
                             change_summary=change_summary,
                         )
+                        if settings.VISOR_ORIGINAL_STORAGE == "database":
+                            VersionContent.objects.create(version=version, content=staged_original.read_bytes())
                         created_original = _publish(staged_original, final_original, sha)
                         created_cache = _publish(staged_cache, final_cache)
                     return {
@@ -424,9 +451,9 @@ def list_library(
 
 def get_version(vid: int):
     v = get_version_row(vid)
-    path = uploads_dir() / v["stored_path"] if v else None
-    if not v or not path.exists():
+    if not v:
         raise HTTPException(404, "Archivo no encontrado")
+    path = original_path(v)
 
     opts = json.loads(v["import_options"]) if v["import_options"] else {}
     cache_path = build_cache_for_version(v["sha256"], path, opts)
@@ -632,6 +659,10 @@ def get_version_changes(
             "kind": kind,
         }
 
+    if selected_summary:
+        for item in (previous, version):
+            options = json.loads(item["import_options"]) if item["import_options"] else {}
+            build_cache_for_version(item["sha256"], uploads_dir() / item["stored_path"], options)
     total, records = get_cached_change_records(
         previous["sha256"],
         version["sha256"],

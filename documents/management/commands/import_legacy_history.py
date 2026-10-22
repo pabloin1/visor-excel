@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from documents.models import Document, Version
+from documents.models import Document, Version, VersionContent
 
 
 JSON_FIELDS = ("import_options", "schema_info", "comparison_keys", "change_summary")
@@ -109,7 +109,10 @@ class Command(BaseCommand):
                 }
                 for field in JSON_FIELDS:
                     fields[field] = json.loads(row[field]) if row.get(field) else None
-                Version.objects.create(**fields)
+                saved = Version.objects.create(**fields)
+                if settings.VISOR_ORIGINAL_STORAGE == "database":
+                    original = Path(settings.MEDIA_ROOT) / row["stored_path"]
+                    VersionContent.objects.create(version=saved, content=original.read_bytes())
 
         self.stdout.write(self.style.SUCCESS(
             f"Importados {len(documents)} documentos y {len(versions)} versiones desde {source}."

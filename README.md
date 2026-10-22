@@ -1,7 +1,9 @@
 # Visor de Excel
 
+Para una demo de 30 días en Render, consulta [DEPLOY-RENDER.md](DEPLOY-RENDER.md).
+
 Herramienta personal para cargar archivos Excel, explorar sus datos en un resumen visual y consultar una biblioteca de documentos con versiones.
-Todo corre en tu máquina con Django, plantillas Django y SQLite. Los originales se guardan en `data/uploads/`.
+En local, el proyecto usa Django, plantillas Django y SQLite. Los originales se guardan en `data/uploads/`. La demo de Render usa PostgreSQL para conservar también los originales entre reinicios.
 La interfaz usa vistas y formularios de Django: cada búsqueda, filtro, cambio de hoja y consulta del historial se resuelve en el servidor. Los formularios de carga y eliminación usan CSRF y siguen el patrón POST/redirect/GET. La API JSON sigue disponible para compatibilidad. Un script estático pequeño habilita arrastrar Excel sobre las tarjetas; el botón y todo el proceso de carga funcionan sin JavaScript ni solicitudes `fetch`. Las bases SQLite individuales de `data/cache/` son índices derivados para consultar hojas grandes; se reconstruyen desde los originales y no sustituyen la base de Django.
 
 La presentación conserva Tailwind CSS 4 y estilos propios. Las fuentes CSS están en `assets/`; `build_css.py` genera `documents/static/documents/app.generated.css`. Las plantillas están en `documents/templates/documents/` y los recursos estáticos en `documents/static/documents/`, siguiendo la organización por aplicación de Django. No se usa Node.js ni npm: el script de Python descarga y ejecuta el compilador independiente oficial de Tailwind cuando se necesita recompilar. El CSS generado está incluido y ejecutar la aplicación no requiere una compilación.
@@ -66,7 +68,7 @@ La carga publica el original y la caché tras prepararlos en archivos temporales
 
 Para limpiar solamente candidatos con más de 24 horas, revisa primero el listado y ejecuta `reconcile_storage --delete`. El comando comprueba el hash del original antes de borrarlo y también detecta carpetas temporales de cargas interrumpidas y archivos pendientes de un formulario de carga que quedó sin completar.
 
-`VISOR_DATA_ROOT` permite usar una copia aislada de `django.db`, `uploads/` y `cache/`. Por defecto apunta a `data/`. `VISOR_DEBUG=1` es el modo local; con `VISOR_DEBUG=0` es obligatorio definir `VISOR_SECRET_KEY`. `VISOR_ALLOWED_HOSTS` acepta una lista de hosts separada por comas. Antes de exponer la aplicación en una red, añade autenticación y permisos para las operaciones de lectura y escritura y revisa `manage.py check --deploy`.
+`VISOR_DATA_ROOT` permite usar una copia aislada de `django.db`, `uploads/` y `cache/`. Por defecto apunta a `data/`. `VISOR_DEBUG=1` es el modo local; con `VISOR_DEBUG=0` es obligatorio definir `SECRET_KEY` o `VISOR_SECRET_KEY`. `VISOR_ALLOWED_HOSTS` acepta una lista de hosts separada por comas. En Render se exige el inicio de sesión y se guardan los originales en PostgreSQL; consulta [DEPLOY-RENDER.md](DEPLOY-RENDER.md) antes de publicar.
 
 ## Probar con datos de ejemplo
 ```bash
@@ -122,5 +124,3 @@ Para asociar un archivo de otro nombre a un documento desde la API, `POST /api/f
 
 La versión vigente muestra en **Cambios** toda la secuencia de comparaciones del documento (v1 → v2, v2 → v3, etc.). Cada tramo permite consultar agregados, actualizados y eliminados por hoja. `GET /api/versions/{id}` incluye `change_history` hasta la versión solicitada; `GET /api/versions/{id}/changes` devuelve el detalle del tramo que termina en esa versión. Para conservar el historial, solo se puede eliminar la versión más reciente; la API devuelve `409` al intentar borrar una versión anterior.
 Si una versión anterior se eliminó antes de esta protección, su resumen puede seguir visible, pero el detalle de esa comparación requiere recuperar el archivo original de esa versión desde un respaldo.
-#   v i s o r - e x c e l  
- 
